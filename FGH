@@ -1,78 +1,59 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
 
 local player = Players.LocalPlayer
-local camera = workspace.CurrentCamera
+local char = player.Character or player.CharacterAdded:Wait()
+local humanoid = char:WaitForChild("Humanoid")
+local root = char:WaitForChild("HumanoidRootPart")
 
--- ค่าพื้นฐาน
-local NORMAL_SPEED = 16
-local NORMAL_JUMP = 50
+local speed = 40
 
--- ความเนียนของการหมุน (ยิ่งน้อยยิ่งลื่น)
-local ROTATE_SMOOTH = 0.18
+-- กันหมุนมั่ว
+humanoid.AutoRotate = false
 
--- ลบแรงฝั่ง client ที่มักทำให้ขยับไม่ได้
-local function clearClientLocks(root)
-	for _,v in ipairs(root:GetChildren()) do
-		if v:IsA("BodyMover")
-		or v:IsA("LinearVelocity")
-		or v:IsA("AngularVelocity")
-		or v:IsA("VectorForce")
-		or v:IsA("BodyGyro")
-		or v:IsA("BodyVelocity") then
-			v:Destroy()
-		end
-	end
-end
+-- ===== Attachment =====
+local att = Instance.new("Attachment")
+att.Parent = root
 
-local function stabilize(char)
-	local hum = char:WaitForChild("Humanoid")
-	local root = char:WaitForChild("HumanoidRootPart")
+-- ===== คุมการเคลื่อนที่ =====
+local vel = Instance.new("LinearVelocity")
+vel.Attachment0 = att
+vel.MaxForce = math.huge
+vel.RelativeTo = Enum.ActuatorRelativeTo.World
+vel.Parent = root
 
-	-- ปล่อยให้แอนิเมชัน/ของที่ถือทำงานปกติ
-	hum.AutoRotate = true
+-- ===== คุมการหมุน (ไม่ก้ม/ไม่เอียง) =====
+local align = Instance.new("AlignOrientation")
+align.Attachment0 = att
+align.MaxTorque = math.huge
+align.Responsiveness = 25
+align.RigidityEnabled = true
+align.Parent = root
 
-	RunService.Heartbeat:Connect(function(dt)
-		if hum.Health <= 0 then return end
+-- สถานะลอยนิ่ง
+humanoid:ChangeState(Enum.HumanoidStateType.Freefall)
 
-		-- คืนค่าการเดิน/กระโดด
-		if hum.WalkSpeed < NORMAL_SPEED then hum.WalkSpeed = NORMAL_SPEED end
-		if hum.JumpPower < NORMAL_JUMP then hum.JumpPower = NORMAL_JUMP end
+RunService.RenderStepped:Connect(function()
+    -- ❌ ไม่เดิน = อยู่นิ่ง (แค่หันไม่ขยับ)
+    if humanoid.MoveDirection.Magnitude == 0 then
+        vel.VectorVelocity = Vector3.zero
+        return
+    end
 
-		-- กันแช่พื้นฐานฝั่ง client
-		hum.PlatformStand = false
+    -- ✅ เดินแล้ว ค่อยเอาทิศจากกล้อง (ขึ้น/ลงได้)
+    local look = Camera.CFrame.LookVector
+    local dir = look.Unit
 
-		-- กัน Anchor
-		if root.Anchored then root.Anchored = false end
-		for _,p in ipairs(char:GetDescendants()) do
-			if p:IsA("BasePart") and p.Anchored then
-				p.Anchored = false
-			end
-		end
+    -- เคลื่อนที่
+    vel.VectorVelocity = dir * speed
 
-		-- ลบแรงแปลก ๆ
-		clearClientLocks(root)
-
-		-- 🔹 การหมุนแบบไม่แข็ง
-		local moveDir = hum.MoveDirection
-		if moveDir.Magnitude > 0.01 then
-			local desired = CFrame.new(
-				root.Position,
-				root.Position + Vector3.new(moveDir.X, 0, moveDir.Z)
-			)
-
-			-- หมุนแบบเนียน ไม่หัก
-			root.CFrame = root.CFrame:Lerp(desired, ROTATE_SMOOTH)
-		end
-	end)
-end
-
-if player.Character then
-	stabilize(player.Character)
-end
-
-player.CharacterAdded:Connect(function(char)
-	task.wait(0.15)
-	stabilize(char)
+    -- 🔒 ล็อกการหมุนตัวเฉพาะแนวราบ
+    local flat = Vector3.new(dir.X, 0, dir.Z)
+    if flat.Magnitude > 0 then
+        align.CFrame = CFrame.lookAt(
+            root.Position,
+            root.Position + flat
+        )
+    end
 end)
-
