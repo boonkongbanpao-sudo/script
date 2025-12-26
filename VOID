@@ -1,0 +1,136 @@
+-- ☠️ VOID COMBAT MODE – ULTRA PURGE ☠️
+-- เหลือ: ตัวเรา + ศัตรู + พื้น
+-- ลบ: เอฟเฟค / อัลติ(ภาพ) / ต้นไม้ / ของประดับ / แสงเงา / สิ่งกีดขวางไร้ค่า
+
+local Players = game:GetService("Players")
+local Lighting = game:GetService("Lighting")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+local cam = workspace.CurrentCamera
+
+-- ===== กราฟฟิกต่ำสุด =====
+settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+pcall(function()
+    UserSettings():GetService("UserGameSettings").SavedQualityLevel =
+        Enum.SavedQualitySetting.QualityLevel1
+end)
+
+-- ===== Lighting = โล้น มองเห็นพอ =====
+Lighting.GlobalShadows = false
+Lighting.FogEnd = 1e10
+Lighting.Brightness = 1
+Lighting.ExposureCompensation = 0
+Lighting.EnvironmentDiffuseScale = 0
+Lighting.EnvironmentSpecularScale = 0
+Lighting.ClockTime = 14
+Lighting.Ambient = Color3.new(1,1,1)
+Lighting.OutdoorAmbient = Color3.new(1,1,1)
+
+for _,v in pairs(Lighting:GetChildren()) do
+    if v:IsA("PostEffect") then v:Destroy() end
+end
+
+-- ===== ลบเอฟเฟคทุกชนิด =====
+local function annihilate(obj)
+    for _,v in pairs(obj:GetDescendants()) do
+        if v:IsA("ParticleEmitter")
+        or v:IsA("Trail")
+        or v:IsA("Smoke")
+        or v:IsA("Fire")
+        or v:IsA("Sparkles")
+        or v:IsA("Beam")
+        or v:IsA("Explosion")
+        or v:IsA("BlurEffect")
+        or v:IsA("BloomEffect")
+        or v:IsA("SunRaysEffect")
+        or v:IsA("ColorCorrectionEffect")
+        or v:IsA("DepthOfFieldEffect")
+        or v:IsA("Decal")
+        or v:IsA("Texture")
+        or v:IsA("Highlight") then
+            v:Destroy()
+        end
+    end
+end
+
+annihilate(workspace)
+annihilate(Lighting)
+
+workspace.DescendantAdded:Connect(function(v)
+    task.wait()
+    if v:IsA("ParticleEmitter")
+    or v:IsA("Trail")
+    or v:IsA("Smoke")
+    or v:IsA("Fire")
+    or v:IsA("Sparkles")
+    or v:IsA("Beam")
+    or v:IsA("Explosion")
+    or v:IsA("PostEffect")
+    or v:IsA("Decal")
+    or v:IsA("Texture")
+    or v:IsA("Highlight") then
+        v:Destroy()
+    end
+end)
+
+-- ===== โลก = กล่องโล้น + ลบต้นไม้/พร็อพ =====
+for _,v in pairs(workspace:GetDescendants()) do
+    if v:IsA("Model") then
+        local n = string.lower(v.Name)
+        if n:find("tree") or n:find("bush") or n:find("plant") or n:find("foliage")
+        or n:find("prop") or n:find("decor") then
+            v:Destroy()
+        end
+    end
+    if v:IsA("BasePart") then
+        v.Material = Enum.Material.Plastic
+        v.Reflectance = 0
+        v.CastShadow = false
+        v.TopSurface = Enum.SurfaceType.Smooth
+        v.BottomSurface = Enum.SurfaceType.Smooth
+    end
+end
+
+-- ===== ตัวละคร = ไม่มีขยะ/อัลติภาพ =====
+local function optimizeChar(char)
+    for _,v in pairs(char:GetDescendants()) do
+        if v:IsA("Accessory")
+        or v:IsA("Clothing")
+        or v:IsA("ShirtGraphic") then
+            v:Destroy()
+        end
+        if v:IsA("ParticleEmitter")
+        or v:IsA("Trail")
+        or v:IsA("Beam") then
+            v:Destroy()
+        end
+        -- ตัดของที่ชอบมากับ ragdoll/render-body (ชื่อพบบ่อย)
+        if v:IsA("Motor6D") then
+            local n = string.lower(v.Name)
+            if n:find("ragdoll") or n:find("render") then
+                v:Destroy()
+            end
+        end
+        if v:IsA("BasePart") then
+            v.Material = Enum.Material.Plastic
+            v.CastShadow = false
+            v.Reflectance = 0
+        end
+    end
+end
+
+if player.Character then optimizeChar(player.Character) end
+player.CharacterAdded:Connect(optimizeChar)
+
+-- ===== กล้องนิ่ง (ไม่ล็อค) =====
+RunService.RenderStepped:Connect(function()
+    cam.CFrame = cam.CFrame:Lerp(cam.CFrame, 0.97)
+end)
+
+-- ===== รีด FPS ต่อเนื่อง =====
+RunService.Stepped:Connect(function()
+    settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+end)
+
+  print("☠️ ULTRA VOID ON | เหลือแค่สู้ ☠️")
+  
