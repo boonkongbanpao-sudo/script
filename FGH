@@ -41,19 +41,4 @@ RunService.RenderStepped:Connect(function()
         return
     end
 
-    -- ✅ เดินแล้ว ค่อยเอาทิศจากกล้อง (ขึ้น/ลงได้)
-    local look = Camera.CFrame.LookVector
-    local dir = look.Unit
-
-    -- เคลื่อนที่
-    vel.VectorVelocity = dir * speed
-
-    -- 🔒 ล็อกการหมุนตัวเฉพาะแนวราบ
-    local flat = Vector3.new(dir.X, 0, dir.Z)
-    if flat.Magnitude > 0 then
-        align.CFrame = CFrame.lookAt(
-            root.Position,
-            root.Position + flat
-        )
-    end
-end)
+    -- ✅ เดินแล้ว ค่อยเอาทิศจา
